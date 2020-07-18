@@ -47,7 +47,7 @@ def get_score_set(team):
 
     auton_win_rate = total_ap / 6.0 / num_matches
 
-    f = open("team_data/" + team + ".txt", 'w')
+    f = open("scoresets/" + team + ".txt", 'w')
     f.write(','.join([str(s) for s in top_scores]) + '\n' + str(auton_win_rate) + '\n')
     print(','.join([str(s) for s in top_scores]) + '\n' + str(auton_win_rate))
     f.close()
