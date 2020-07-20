@@ -33,5 +33,6 @@ class Team:
     def give_score(self):
         raw_score = random.choice(self.scores)
         self.scores.remove(raw_score)
-        return round(raw_score * self.current_status)
+        self.exportJSON()
+        return int(round(raw_score * self.current_status))
         
