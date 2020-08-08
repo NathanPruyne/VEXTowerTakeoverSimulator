@@ -5,6 +5,7 @@ import os
 import random
 import shutil
 import ansiwrap
+from time import sleep
 
 
 class MatchEvent():
@@ -81,11 +82,13 @@ class Stack(MatchEvent):
 class Destack(MatchEvent):
 
     def __init__(self, stack, time):
+        self.stack = stack
         self.cube_totals = stack.cube_totals
         self.zone = stack.zone
         super().__init__(time, stack.team, stack.color)
 
     def act(self):
+        self.cube_totals = self.stack.cube_totals
         event_str = self.teamcolored() + " removes " + cube_totals_to_string(self.cube_totals) + " from the "
         if self.zone == 0:
             event_str += "protected zone"
@@ -344,39 +347,47 @@ def run_match(red_alliance, blue_alliance):
     red_unprotected_spots = 0
     blue_unprotected_spots = 0
 
-    for event in events:
-        if type(event) == Stack and event.autofail:
-            if event.color == 0:
-                red_available_spots += 1
-                if event.zone == 0:
-                    red_protected_spots += 1
+    red_still_needed = [red_stacks_pred[i] - red_auton_result[i] for i in range(3)]
+    blue_still_needed = [blue_stacks_pred[i] - blue_auton_result[i] for i in range(3)]
+
+    stack_size_reasonable = False
+
+    while not stack_size_reasonable:
+        for event in events:
+            if type(event) == Stack and event.autofail:
+                if event.color == 0:
+                    red_available_spots += 1
+                    if event.zone == 0:
+                        red_protected_spots += 1
+                    else:
+                        red_unprotected_spots += 1
                 else:
-                    red_unprotected_spots += 1
+                    blue_available_spots += 1
+                    if event.zone == 0:
+                        blue_protected_spots += 1
+                    else:
+                        blue_unprotected_spots += 1
             else:
-                blue_available_spots += 1
-                if event.zone == 0:
-                    blue_protected_spots += 1
-                else:
-                    blue_unprotected_spots += 1
-        else:
-            if event.color == 0 and (not get_all_more(red_stacks_pred, red_auton_result) or random.random() < 0.5):
-                destacks.append(Destack(event, random.randint(15, 25)))
-                red_available_spots += 1
-                for i in range(3):
-                    red_auton_result[i] -= event.cube_totals[i]
-                if event.zone == 0:
-                    red_protected_spots += 1
-                else:
-                    red_unprotected_spots += 1
-            elif event.color == 1 and (not get_all_more(blue_stacks_pred, blue_auton_result) or random.random() < 0.5):
-                destacks.append(Destack(event, random.randint(15, 25)))
-                blue_available_spots += 1
-                for i in range(3):
-                    blue_auton_result[i] -= event.cube_totals[i]
-                if event.zone == 0:
-                    blue_protected_spots += 1
-                else:
-                    blue_unprotected_spots += 1
+                if event.color == 0 and (not get_all_more(red_stacks_pred, red_auton_result) or random.random() < 0.5):
+                    destacks.append(Destack(event, random.randint(16, 25)))
+                    red_available_spots += 1
+                    for i in range(3):
+                        red_auton_result[i] -= event.cube_totals[i]
+                    if event.zone == 0:
+                        red_protected_spots += 1
+                    else:
+                        red_unprotected_spots += 1
+                elif event.color == 1 and (not get_all_more(blue_stacks_pred, blue_auton_result) or random.random() < 0.5):
+                    destacks.append(Destack(event, random.randint(16, 25)))
+                    blue_available_spots += 1
+                    for i in range(3):
+                        blue_auton_result[i] -= event.cube_totals[i]
+                    if event.zone == 0:
+                        blue_protected_spots += 1
+                    else:
+                        blue_unprotected_spots += 1
+        if sum(red_still_needed) <= red_available_spots * 12 and sum(blue_still_needed) <= blue_available_spots * 12:
+            stack_size_reasonable = True
     
     for event in destacks:
         events.append(event)
@@ -385,8 +396,15 @@ def run_match(red_alliance, blue_alliance):
     blue_still_needed = [blue_stacks_pred[i] - blue_auton_result[i] for i in range(3)]
 
     #Generate stacks to add
-    red_stacks = [[0, 0, 0] for i in range(random.randint(int(sum(red_still_needed) / 12) + 1, red_available_spots))]
-    blue_stacks = [[0, 0, 0] for i in range(random.randint(int(sum(blue_still_needed) / 12) + 1, blue_available_spots))]
+    try:
+        red_stacks = [[0, 0, 0] for i in range(random.randint(int(sum(red_still_needed) / 12) + 1, red_available_spots))]
+    except ValueError:
+        red_stacks = [[0, 0, 0] for i in range(red_available_spots)]
+
+    try:
+        blue_stacks = [[0, 0, 0] for i in range(random.randint(int(sum(blue_still_needed) / 12) + 1, blue_available_spots))]
+    except ValueError:
+        blue_stacks = [[0, 0, 0] for i in range(blue_available_spots)]
 
     for i in range(3):
         for j in range(red_still_needed[i]):
@@ -477,11 +495,12 @@ def run_match(red_alliance, blue_alliance):
     auton_winner = -1
     input("Press enter to begin")
     for time in range(121):
+        sleep(0.5)
         if curr_event < len(events) and events[curr_event].time == time:
             while curr_event < len(events) and events[curr_event].time == time:
                 update_cubes(match_totals, events[curr_event].act())
                 curr_event += 1
-        if time == 15:
+        if time == 14:
             if sum(match_totals[1]) > sum(match_totals[2]):
                 auton_winner = 0
                 print(redtext("Red wins autonomous!"))
