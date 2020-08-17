@@ -10,6 +10,7 @@ class Team:
         self.auton_rate = auton_rate
         self.repair_time = repair_time
         self.current_status = current_status
+        self.last_match_time = None
 
     @classmethod
     def fromScoresetFile(cls, filename):
