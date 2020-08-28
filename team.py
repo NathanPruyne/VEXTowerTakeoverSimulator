@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import datetime
 
 class Team:
 
@@ -32,6 +33,7 @@ class Team:
             json.dump(self.__dict__, f)
 
     def give_score(self):
+        self.last_match_time = datetime.datetime.now()
         raw_score = random.choice(self.scores)
         self.scores.remove(raw_score)
         self.exportJSON()
