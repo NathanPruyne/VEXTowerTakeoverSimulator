@@ -88,6 +88,15 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
 
+    def align(self):
+        ag = QtWidgets.QDesktopWidget().screenGeometry()
+        #print(ag)
+
+        widget = self.geometry()
+        x = ag.width() - widget.width()
+        y = 400
+        self.move(x, y)
+
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("MainWindow", "MainWindow"))

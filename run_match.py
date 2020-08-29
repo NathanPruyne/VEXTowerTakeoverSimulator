@@ -9,7 +9,7 @@ from time import sleep
 from match_events import *
 from utils import *
 from visualization import *
-import pyautogui
+#import pyautogui
 
 def calc_score(towers, stacks):
     score = 0
@@ -362,9 +362,10 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
     #Run match and log events
     curr_event = 0
     auton_winner = -1
+    os.system('clear')
     input("Press enter to begin")
     for time in range(121):
-        input("continue?")
+        #input("continue?")
         if wait:
             sleep(speed)
         if curr_event < len(events) and events[curr_event].time == time:
@@ -437,6 +438,8 @@ if __name__ == "__main__":
         bot2 = Bot(ui.centralwidget, 0, args.red2, 420, 950)
         bot3 = Bot(ui.centralwidget, 1, args.blue1, 1670, 350)
         bot4 = Bot(ui.centralwidget, 1, args.blue2, 1670, 950)
+        ui.align()
+        ui.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         ui.show()
     run_match(reds, blues, args.speed, args.wait, ui)
         #sys.exit(app.exec_())
