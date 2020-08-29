@@ -1,1 +1,2 @@
 ansiwrap
+PyQt5
