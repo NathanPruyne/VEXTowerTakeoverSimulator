@@ -8,6 +8,8 @@ import ansiwrap
 from time import sleep
 from match_events import *
 from utils import *
+from visualization import *
+import pyautogui
 
 def calc_score(towers, stacks):
     score = 0
@@ -84,7 +86,7 @@ def get_all_more(more, less):
             return False
     return True
 
-def run_match(red_alliance, blue_alliance):
+def run_match(red_alliance, blue_alliance, speed, wait, visual):
     red_strengths = [team.give_score() for team in red_alliance]
 
     blue_strengths = [team.give_score() for team in blue_alliance]
@@ -362,10 +364,14 @@ def run_match(red_alliance, blue_alliance):
     auton_winner = -1
     input("Press enter to begin")
     for time in range(121):
-        #sleep(0.5)
+        input("continue?")
+        if wait:
+            sleep(speed)
         if curr_event < len(events) and events[curr_event].time == time:
             while curr_event < len(events) and events[curr_event].time == time:
                 update_cubes(match_totals, events[curr_event].act())
+                if visual:
+                    events[curr_event].visualize(visual)
                 curr_event += 1
         if time == 14:
             if sum(match_totals[1]) > sum(match_totals[2]):
@@ -393,6 +399,7 @@ def run_match(red_alliance, blue_alliance):
     print("Blue stacks: " + cube_totals_to_string(match_totals[2]))
 
     print("Final score: " + redtext(red_final_score) + '-' + bluetext(blue_final_score))
+    input("Press enter to quit")
 
 '''
     for event in events:
@@ -408,6 +415,9 @@ if __name__ == "__main__":
     parser.add_argument('red2', help='Red alliance team 2')
     parser.add_argument('blue1', help='Blue alliance team 1')
     parser.add_argument('blue2', help='Blue alliance team 2')
+    parser.add_argument('--no-visual', dest='visual', action='store_false', default=True, help='Don\'t run the visualization')
+    parser.add_argument('--speed', type=float, default = 1.0, help='Speed to run the simulation')
+    parser.add_argument('--no-wait', dest='wait', action='store_false', default=True, help='Use to run full match immediately without waiting')
     args = parser.parse_args()
     try:
         red1 = Team.fromJSON('team_data/' + args.red1 + '.json')
@@ -419,4 +429,14 @@ if __name__ == "__main__":
         quit()
     reds = [red1, red2]
     blues = [blue1, blue2]
-    run_match(reds, blues)
+    ui = None
+    if args.visual:
+        app = QtWidgets.QApplication(sys.argv)
+        ui = Ui_MainWindow()
+        bot1 = Bot(ui.centralwidget, 0, args.red1, 420, 350)
+        bot2 = Bot(ui.centralwidget, 0, args.red2, 420, 950)
+        bot3 = Bot(ui.centralwidget, 1, args.blue1, 1670, 350)
+        bot4 = Bot(ui.centralwidget, 1, args.blue2, 1670, 950)
+        ui.show()
+    run_match(reds, blues, args.speed, args.wait, ui)
+        #sys.exit(app.exec_())

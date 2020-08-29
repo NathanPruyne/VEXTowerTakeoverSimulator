@@ -3,6 +3,7 @@ import ansiwrap
 import shutil
 from colortext import *
 from utils import *
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 class MatchEvent():
 
@@ -31,7 +32,12 @@ class MatchEvent():
     def act(self):
         return self.score_updates #Should be overriden by all subclasses
 
+    def visualize(self, window):
+        pass #Should be overriden by all subclasses
+
 class Stack(MatchEvent):
+
+    locs = [[(500, 500), (700, 700)], [(900, 900), (1000, 1000)]]
 
     def __init__(self, zone, time, team, color, cube_totals=None, cube_order=None, autofail=False):
         if (cube_totals == None) and (cube_order == None):
@@ -74,6 +80,10 @@ class Stack(MatchEvent):
             self.log("STACK IS DROPPED! " + cube_totals_to_string(self.cube_totals) + " remain")
         self.score_updates[self.color + 1] = self.cube_totals
         return self.score_updates
+
+    def visualize(self, window):
+        acting_bot = window.findChild(QtWidgets.QLabel, self.team)
+        acting_bot.move(Stack.locs[self.color][self.zone][0], Stack.locs[self.color][self.zone][1])
 
 class Destack(MatchEvent):
 

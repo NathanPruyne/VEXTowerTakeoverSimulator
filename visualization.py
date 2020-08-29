@@ -1,4 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+import time
+import sys
 
 class Bot(QtWidgets.QLabel):
     def __init__(self, widget, color, team_name, x, y):
@@ -63,11 +65,12 @@ class Cube(QtWidgets.QLabel):
         print("Completed cube init")
 
 
-class Ui_MainWindow(object):
-    def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(2522, 1586)
-        self.centralwidget = QtWidgets.QWidget(MainWindow)
+class Ui_MainWindow(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("MainWindow")
+        self.resize(2522, 1586)
+        self.centralwidget = QtWidgets.QWidget(self)
         self.centralwidget.setAutoFillBackground(False)
         self.centralwidget.setStyleSheet("")
         self.centralwidget.setObjectName("centralwidget")
@@ -76,29 +79,36 @@ class Ui_MainWindow(object):
         self.bgimage.setText("")
         self.bgimage.setPixmap(QtGui.QPixmap("assets/field_smaller.png"))
         self.bgimage.setObjectName("bgimage")
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(MainWindow)
+        self.setCentralWidget(self.centralwidget)
+        self.menubar = QtWidgets.QMenuBar(self)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 2522, 22))
         self.menubar.setObjectName("menubar")
-        MainWindow.setMenuBar(self.menubar)
+        self.setMenuBar(self.menubar)
 
-        self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        self.retranslateUi()
+        QtCore.QMetaObject.connectSlotsByName(self)
 
-    def retranslateUi(self, MainWindow):
+    def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.setWindowTitle(_translate("MainWindow", "MainWindow"))
+
+    def refresh(self):
+
+        print("Timing!")
+        bot1 = self.findChild(QtWidgets.QLabel, "1A")
 
 if __name__ == "__main__":
-    import sys
     app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
     bot1 = Bot(ui.centralwidget, 0, '1A', 420, 350)
     bot2 = Bot(ui.centralwidget, 0, '2B', 420, 950)
     bot3 = Bot(ui.centralwidget, 1, '3C', 1670, 350)
     bot4 = Bot(ui.centralwidget, 1, '4D', 1670, 950)
     cube = Cube(ui.centralwidget, 0, 790, 730)
-    MainWindow.show()
+    timer = QtCore.QTimer()
+    timer.start(1000)
+    timer.timeout.connect(ui.refresh)
+    print(timer)
+    ui.show()
+    print(ui.findChildren(QtWidgets.QLabel))
     sys.exit(app.exec_())
