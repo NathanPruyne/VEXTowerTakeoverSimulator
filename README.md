@@ -5,5 +5,7 @@ Package to simulate a VEX Robotics tournament using similar methodology to VEX V
 # Acknowledgements
 
 Thanks to Sean from 2360N and Ryan from 333A for CAD images of the bots
+
 Inspired by VEX Robotics Competition Tower Takeover
+
 Cube and field images from official Tower Takeover resources
