@@ -4,6 +4,8 @@ import shutil
 from colortext import *
 from utils import *
 from PyQt5 import QtCore, QtGui, QtWidgets
+from visualization import Bot, Cube
+import constants
 
 class MatchEvent():
 
@@ -35,16 +37,17 @@ class MatchEvent():
     def visualize(self, window):
         pass #Should be overriden by all subclasses
 
+    def init_visualization(self, window):
+        pass #Should be overriden by subclasses
+
 class Stack(MatchEvent):
 
-    locs = [[(500, 500), (700, 700)], [(900, 900), (1000, 1000)]]
-
-    def __init__(self, zone, time, team, color, cube_totals=None, cube_order=None, autofail=False):
+    def __init__(self, location, time, team, color, cube_totals=None, cube_order=None, autofail=False):
         if (cube_totals == None) and (cube_order == None):
             raise ValueError("Bad stack created!")
         self.cube_totals = cube_totals
         self.cube_order = cube_order
-        self.zone = zone
+        self.location = location
         if cube_order == None:
             self.cube_order = []
             for index in range(3):
@@ -64,45 +67,79 @@ class Stack(MatchEvent):
 
     def act(self):
         attempt_str = self.teamcolored() + " tries to stack " + cube_totals_to_string(self.cube_totals) + " in the "
-        if self.zone == 0:
-            attempt_str += "protected zone"
-        else:
+        if self.location == 0:
             attempt_str += "unprotected zone"
+        else:
+            attempt_str += "protected zone"
         self.log(attempt_str)
         if self.autofail:
             self.log("Stack misses!")
+            self.cube_visuals = []
             self.cube_totals = [0, 0, 0]
-        elif random.random() < 0.95:
+        elif random.random() < constants.STACK_SUCCESS_ODDS:
             self.log("Success!")
         else:
-            self.cube_order = self.cube_order[:random.randint(1, 3)]
+            cubes_remaining = random.randint(1, 3)
+            self.cube_order = self.cube_order[:cubes_remaining]
+            self.cube_visuals = self.cube_visuals[:cubes_remaining + 1]
             self.update_totals()
             self.log("STACK IS DROPPED! " + cube_totals_to_string(self.cube_totals) + " remain")
         self.score_updates[self.color + 1] = self.cube_totals
         return self.score_updates
 
+    def init_visualization(self, window):
+        self.cube_visuals = []
+        max_color = self.cube_totals.index(max(self.cube_totals))
+        top_loc = Cube.stack_top_locs[self.color][self.location]
+        top_cube = Cube(window, max_color, top_loc[0], top_loc[1], self.team + str(self.location) + str(self.time))
+        top_cube.hide()
+        self.cube_visuals.append(top_cube)
+        stack_loc = Cube.full_stack_locs[self.color][self.location]
+        count = 0
+        for color in self.cube_order:
+            cube_vis = Cube(window, color, stack_loc[0], stack_loc[1] - count * 51, self.team + str(self.location) + str(self.time))
+            cube_vis.hide()
+            self.cube_visuals.append(cube_vis)
+            count += 1
+
+
     def visualize(self, window):
         acting_bot = window.findChild(QtWidgets.QLabel, self.team)
-        acting_bot.move(Stack.locs[self.color][self.zone][0], Stack.locs[self.color][self.zone][1])
+        loc = list(Bot.zone_locs_and_rots[self.color][self.location])
+        if self.autofail:
+            loc[0] += random.randint(-40, 40)
+            loc[1] += random.randint(-40, 40)
+            loc[2] += random.randint(-10, 10)
+        acting_bot.update_position(loc[0], loc[1], loc[2])
+        for cube in self.cube_visuals:
+            cube.show()
+        #print(window.findChildren(QtWidgets.QLabel))
 
 class Destack(MatchEvent):
 
     def __init__(self, stack, time):
         self.stack = stack
         self.cube_totals = stack.cube_totals
-        self.zone = stack.zone
+        self.location = stack.location
         super().__init__(time, stack.team, stack.color)
 
     def act(self):
         self.cube_totals = self.stack.cube_totals
         event_str = self.teamcolored() + " removes " + cube_totals_to_string(self.cube_totals) + " from the "
-        if self.zone == 0:
-            event_str += "protected zone"
-        else:
+        if self.location == 0:
             event_str += "unprotected zone"
+        else:
+            event_str += "protected zone"
         self.log(event_str)
         self.score_updates[self.color + 1] = [total * -1 for total in self.cube_totals]
         return self.score_updates
+    
+    def visualize(self, window):
+        acting_bot = window.findChild(QtWidgets.QLabel, self.team)
+        loc = Bot.zone_locs_and_rots[self.color][self.location]
+        acting_bot.update_position(loc[0], loc[1], loc[2])
+        for cube in self.stack.cube_visuals:
+            cube.hide()
 
 class Tower(MatchEvent):
 
@@ -123,9 +160,22 @@ class Tower(MatchEvent):
             attempt_str += purpletext("purple")
         attempt_str += " in the " + self.tower_names[self.tower_loc]
         self.log(attempt_str)
-        if random.random() < 0.95:
+        if random.random() < constants.TOWER_SUCCESS_ODDS:
             self.log("Success!")
             self.score_updates[0][self.cube] = 1
         else:
             self.log("Towering failed!")
+            self.cube_visual = None
         return self.score_updates
+
+    def init_visualization(self, window):
+        visual_loc = Cube.tower_locs[self.tower_loc]
+        self.cube_visual = Cube(window, self.cube, visual_loc[0], visual_loc[1], self.team + str(self.tower_loc) + str(self.time))
+        self.cube_visual.hide()
+
+    def visualize(self, window):
+        acting_bot = window.findChild(QtWidgets.QLabel, self.team)
+        loc = Bot.tower_locs_and_rots[self.color][self.tower_loc]
+        acting_bot.update_position(loc[0], loc[1], loc[2])
+        if self.cube_visual:
+            self.cube_visual.show()

@@ -3,6 +3,10 @@ import time
 import sys
 
 class Bot(QtWidgets.QLabel):
+
+    zone_locs_and_rots = [[(640, 900, 135), (640, 250, 235), (660, 250, 235)], [(1400, 900, 225), (1440, 250, 125), (1420, 250, 125)]]
+    tower_locs_and_rots = [[(825, 945, 90), (710, 310, 90), (830, 340, 0), (880, 390, 45), (830, 980, 0), (1580, 310, 90), (1470, 945, 90)], [(825, 945, 90), (710, 800, 90), (1280, 340, 0), (1200, 710, 45), (1280, 980, 0), (1580, 800, 90), (1470, 945, 90)]]
+
     def __init__(self, widget, color, team_name, x, y):
 
         full_pm = QtGui.QPixmap(401, 201)
@@ -15,7 +19,7 @@ class Bot(QtWidgets.QLabel):
             text_frame = QtCore.QRectF(20, 65, 261, 61)
         else:
             bot_pixmap = QtGui.QPixmap("assets/TT_BOT_TOP_BLUE.png")
-            text_frame = QtCore.QRectF(150, 65, 261, 61)
+            text_frame = QtCore.QRectF(150, 65, 230, 61)
 
         font = QtGui.QFont()
         font.setFamily("Excluded")
@@ -28,9 +32,10 @@ class Bot(QtWidgets.QLabel):
         painter.drawPixmap(bot_frame, bot_pixmap, QtCore.QRectF(bot_pixmap.rect()))
         if color == 0:
             painter.setPen(QtGui.QPen(QtGui.QColor('#600000')))
+            painter.drawText(text_frame, team_name)
         else:
             painter.setPen(QtGui.QPen(QtGui.QColor('#000060')))
-        painter.drawText(text_frame, team_name)
+            painter.drawText(text_frame, QtCore.Qt.AlignRight, team_name)
 
         super(Bot, self).__init__(widget)
         self.setGeometry(QtCore.QRect(x, y, 401, 201))
@@ -38,14 +43,29 @@ class Bot(QtWidgets.QLabel):
 
         self.setPixmap(full_pm)
 
+        self.original_pixmap = full_pm
+
         self.setObjectName(team_name)
 
         #print("Completed bot init")
 
         painter.end()
 
+    def update_position(self, x, y, rotation):
+        transform = QtGui.QTransform().rotate(rotation)
+        pixmap = self.original_pixmap.transformed(transform, QtCore.Qt.SmoothTransformation)
+
+        self.setPixmap(pixmap)
+        self.setGeometry(QtCore.QRect(x, y, pixmap.width(), pixmap.height()))
+
+
 class Cube(QtWidgets.QLabel):
-    def __init__(self, widget, color, x, y):
+
+    stack_top_locs = [[(650, 1310), (640, 160), (700, 160)], [(1800, 1310), (1800, 160), (1740, 160)]]
+    full_stack_locs = [[(170, 1410), (110, 670), (180, 670)], [(2240, 1380), (2300, 680), (2240, 680)]]
+    tower_locs = [(904, 1370), (785, 732), (1225, 410), (1223, 733), (1226, 1058), (1663, 733), (1543, 1370)]
+
+    def __init__(self, widget, color, x, y, name):
         if color == 0:
             cube_pixmap = QtGui.QPixmap("assets/orangecube.png")
         elif color == 1:
@@ -60,9 +80,9 @@ class Cube(QtWidgets.QLabel):
 
         self.setPixmap(cube_pixmap)
 
-        self.setObjectName("cube" + str(x) + "_" + str(y))
+        self.setObjectName(name)
 
-        print("Completed cube init")
+        #print("Completed cube init")
 
 
 class Ui_MainWindow(QtWidgets.QMainWindow):
@@ -103,7 +123,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
     def refresh(self):
 
-        print("Timing!")
+        #print("Timing!")
         bot1 = self.findChild(QtWidgets.QLabel, "1A")
 
 if __name__ == "__main__":
@@ -113,11 +133,16 @@ if __name__ == "__main__":
     bot2 = Bot(ui.centralwidget, 0, '2B', 420, 950)
     bot3 = Bot(ui.centralwidget, 1, '3C', 1670, 350)
     bot4 = Bot(ui.centralwidget, 1, '4D', 1670, 950)
-    cube = Cube(ui.centralwidget, 0, 790, 730)
     timer = QtCore.QTimer()
     timer.start(1000)
     timer.timeout.connect(ui.refresh)
     print(timer)
     ui.show()
-    print(ui.findChildren(QtWidgets.QLabel))
+    #cube = Cube(ui.centralwidget, 0, 790, 730)
+    bot1.update_position(1580, 310, 90)
+    bot2.update_position(1470, 945, 90)
+    bot4.update_position(710, 800, 90)
+    bot3.update_position(1200, 710, 45)
+    #print(ui.findChildren(QtWidgets.QLabel))
+    
     sys.exit(app.exec_())

@@ -9,6 +9,8 @@ from time import sleep
 from match_events import *
 from utils import *
 from visualization import *
+from PyQt5 import QtCore, QtGui, QtWidgets
+import constants
 #import pyautogui
 
 def calc_score(towers, stacks):
@@ -189,10 +191,10 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
 
         if (red_total > blue_total and auton_winner == 0) or (red_total < blue_total and auton_winner == 1) or (red_total == blue_total and auton_winner == 2): #We randomly picked right
             
-            red_p_auton = Stack(0, random.randint(10, 14), red_alliance[0].name, 0, cube_order=red_p, autofail=fails[0])
-            red_u_auton = Stack(1, random.randint(10, 14), red_alliance[1].name, 0, cube_order=red_u, autofail=fails[1])
-            blue_p_auton = Stack(0, random.randint(10, 14), blue_alliance[0].name, 1, cube_order=blue_p, autofail=fails[2])
-            blue_u_auton = Stack(1, random.randint(10, 14), blue_alliance[1].name, 1, cube_order=blue_u, autofail=fails[3])
+            red_p_auton = Stack(1, random.randint(10, 14), red_alliance[0].name, 0, cube_order=red_p, autofail=fails[0])
+            red_u_auton = Stack(0, random.randint(10, 14), red_alliance[1].name, 0, cube_order=red_u, autofail=fails[1])
+            blue_p_auton = Stack(1, random.randint(10, 14), blue_alliance[0].name, 1, cube_order=blue_p, autofail=fails[2])
+            blue_u_auton = Stack(0, random.randint(10, 14), blue_alliance[1].name, 1, cube_order=blue_u, autofail=fails[3])
 
             events = [red_p_auton, red_u_auton, blue_p_auton, blue_u_auton]
 
@@ -201,14 +203,12 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
     #Stack event generation
 
     #Remove auton stacks as necessary (or cuz we feel like it)
-    red_available_spots = 1
-    blue_available_spots = 1
+    red_available_spots = 3
+    blue_available_spots = 3
     destacks = []
 
-    red_protected_spots = 1
-    blue_protected_spots = 1
-    red_unprotected_spots = 0
-    blue_unprotected_spots = 0
+    red_spot_list = [0, 1, 2]
+    blue_spot_list = [0, 1, 2]
 
     red_still_needed = [red_stacks_pred[i] - red_auton_result[i] for i in range(3)]
     blue_still_needed = [blue_stacks_pred[i] - blue_auton_result[i] for i in range(3)]
@@ -216,39 +216,33 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
     stack_size_reasonable = False
 
     while not stack_size_reasonable:
+        red_available_spots = 3
+        blue_available_spots = 3
+        destacks = []
+
+        red_spot_list = [0, 1, 2]
+        blue_spot_list = [0, 1, 2]
+
+        red_still_needed = [red_stacks_pred[i] - red_auton_result[i] for i in range(3)]
+        blue_still_needed = [blue_stacks_pred[i] - blue_auton_result[i] for i in range(3)]
         for event in events:
-            if type(event) == Stack and event.autofail:
-                if event.color == 0:
-                    red_available_spots += 1
-                    if event.zone == 0:
-                        red_protected_spots += 1
+            if type(event) == Stack and not event.autofail:
+                if event.color == 0: 
+                    if not get_all_more(red_stacks_pred, red_auton_result) or random.random() < 0.5:
+                        destacks.append(Destack(event, random.randint(16, 25)))
+                        for i in range(3):
+                            red_auton_result[i] -= event.cube_totals[i]
                     else:
-                        red_unprotected_spots += 1
-                else:
-                    blue_available_spots += 1
-                    if event.zone == 0:
-                        blue_protected_spots += 1
+                        red_spot_list.remove(event.location)
+                        red_available_spots -= 1
+                if event.color == 1:
+                    if not get_all_more(blue_stacks_pred, blue_auton_result) or random.random() < 0.5:
+                        destacks.append(Destack(event, random.randint(16, 25)))
+                        for i in range(3):
+                            blue_auton_result[i] -= event.cube_totals[i]
                     else:
-                        blue_unprotected_spots += 1
-            else:
-                if event.color == 0 and (not get_all_more(red_stacks_pred, red_auton_result) or random.random() < 0.5):
-                    destacks.append(Destack(event, random.randint(16, 25)))
-                    red_available_spots += 1
-                    for i in range(3):
-                        red_auton_result[i] -= event.cube_totals[i]
-                    if event.zone == 0:
-                        red_protected_spots += 1
-                    else:
-                        red_unprotected_spots += 1
-                elif event.color == 1 and (not get_all_more(blue_stacks_pred, blue_auton_result) or random.random() < 0.5):
-                    destacks.append(Destack(event, random.randint(16, 25)))
-                    blue_available_spots += 1
-                    for i in range(3):
-                        blue_auton_result[i] -= event.cube_totals[i]
-                    if event.zone == 0:
-                        blue_protected_spots += 1
-                    else:
-                        blue_unprotected_spots += 1
+                        blue_spot_list.remove(event.location)
+                        blue_available_spots -= 1
         if sum(red_still_needed) <= red_available_spots * 12 and sum(blue_still_needed) <= blue_available_spots * 12:
             stack_size_reasonable = True
     
@@ -275,24 +269,19 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
         for j in range(blue_still_needed[i]):
             blue_stacks[random.randint(0, len(blue_stacks) - 1)][i] += 1
 
-    red_avail_zones = [0 for i in range(red_protected_spots)]
-    if red_unprotected_spots == 1:
-        red_avail_zones.append(1)
-    blue_avail_zones = [0 for i in range(blue_protected_spots)]
-    if blue_unprotected_spots == 1:
-        blue_avail_zones.append(1)
-
     for stack in red_stacks:
-        try:
-            events.append(Stack(red_avail_zones.pop(random.randint(0, len(red_avail_zones) - 1)), random.randint(30, 120), red_alliance[pick_acting_team(red_strengths)].name, 0, cube_totals=stack))
-        except ValueError:
-            events.append(Stack(red_avail_zones.pop(0), random.randint(30, 120), red_alliance[pick_acting_team(red_strengths)].name, 0, cube_totals=stack))
+        location = random.choice(red_spot_list)
+        if location == 2 and (1 in red_spot_list):
+            location = 1
+        events.append(Stack(location, random.randint(30, 120), red_alliance[pick_acting_team(red_strengths)].name, 0, cube_totals=stack))
+        red_spot_list.remove(location)
     for stack in blue_stacks:
-        try:
-            events.append(Stack(blue_avail_zones.pop(random.randint(0, len(blue_avail_zones) - 1)), random.randint(30, 120), blue_alliance[pick_acting_team(blue_strengths)].name, 1, cube_totals=stack))
-        except ValueError:
-            events.append(Stack(blue_avail_zones.pop(0), random.randint(30, 120), blue_alliance[pick_acting_team(blue_strengths)].name, 1, cube_totals=stack))
-            
+        location = random.choice(blue_spot_list)
+        if location == 2 and (1 in blue_spot_list):
+            location = 1
+        events.append(Stack(location, random.randint(30, 120), blue_alliance[pick_acting_team(blue_strengths)].name, 1, cube_totals=stack))
+        blue_spot_list.remove(location)
+
     #Generate tower event times
     tower_times = []
     for i in range(sum(towers_pred)):
@@ -362,17 +351,30 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
     #Run match and log events
     curr_event = 0
     auton_winner = -1
-    os.system('clear')
+    #os.system('clear')
+    if visual:
+        app = QtWidgets.QApplication(sys.argv)
+        ui = Ui_MainWindow()
+        bot1 = Bot(ui.centralwidget, 0, red_alliance[0].name, 420, 350)
+        bot2 = Bot(ui.centralwidget, 0, red_alliance[1].name, 420, 950)
+        bot3 = Bot(ui.centralwidget, 1, blue_alliance[0].name, 1670, 350)
+        bot4 = Bot(ui.centralwidget, 1, blue_alliance[1].name, 1670, 950)
+        ui.align()
+        for event in events:
+            event.init_visualization(ui.centralwidget)
+        ui.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        ui.show()
     input("Press enter to begin")
     for time in range(121):
-        #input("continue?")
+        if visual:
+            QtWidgets.QApplication.processEvents()
         if wait:
             sleep(speed)
         if curr_event < len(events) and events[curr_event].time == time:
             while curr_event < len(events) and events[curr_event].time == time:
                 update_cubes(match_totals, events[curr_event].act())
                 if visual:
-                    events[curr_event].visualize(visual)
+                    events[curr_event].visualize(ui)
                 curr_event += 1
         if time == 14:
             if sum(match_totals[1]) > sum(match_totals[2]):
@@ -430,16 +432,6 @@ if __name__ == "__main__":
         quit()
     reds = [red1, red2]
     blues = [blue1, blue2]
-    ui = None
-    if args.visual:
-        app = QtWidgets.QApplication(sys.argv)
-        ui = Ui_MainWindow()
-        bot1 = Bot(ui.centralwidget, 0, args.red1, 420, 350)
-        bot2 = Bot(ui.centralwidget, 0, args.red2, 420, 950)
-        bot3 = Bot(ui.centralwidget, 1, args.blue1, 1670, 350)
-        bot4 = Bot(ui.centralwidget, 1, args.blue2, 1670, 950)
-        ui.align()
-        ui.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        ui.show()
-    run_match(reds, blues, args.speed, args.wait, ui)
+    ui = None       
+    run_match(reds, blues, args.speed, args.wait, args.visual)
         #sys.exit(app.exec_())
