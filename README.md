@@ -10,4 +10,4 @@ Inspired by VEX Robotics Competition Tower Takeover
 
 Cube and field images from official Tower Takeover resources
 
-Season match results data is sourced from [vexdb.io](vexdb.io)
+Season match results data is sourced from [vexdb.io](https://vexdb.io)
