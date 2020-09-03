@@ -351,7 +351,6 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
     #Run match and log events
     curr_event = 0
     auton_winner = -1
-    #os.system('clear')
     if visual:
         app = QtWidgets.QApplication(sys.argv)
         ui = Ui_MainWindow()
@@ -364,6 +363,7 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
             event.init_visualization(ui.centralwidget)
         ui.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         ui.show()
+    os.system('clear')
     input("Press enter to begin")
     for time in range(121):
         if visual:
@@ -419,7 +419,7 @@ if __name__ == "__main__":
     parser.add_argument('blue1', help='Blue alliance team 1')
     parser.add_argument('blue2', help='Blue alliance team 2')
     parser.add_argument('--no-visual', dest='visual', action='store_false', default=True, help='Don\'t run the visualization')
-    parser.add_argument('--speed', type=float, default = 1.0, help='Speed to run the simulation')
+    parser.add_argument('--speed', type=float, default = constants.DEFAULT_SPEED, help='Speed to run the simulation')
     parser.add_argument('--no-wait', dest='wait', action='store_false', default=True, help='Use to run full match immediately without waiting')
     args = parser.parse_args()
     try:

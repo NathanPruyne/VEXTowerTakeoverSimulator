@@ -23,7 +23,7 @@ class Bot(QtWidgets.QLabel):
 
         font = QtGui.QFont()
         font.setFamily("Excluded")
-        font.setPointSize(22)
+        font.setPointSize(34)
         font.setItalic(True)
         
         painter = QtGui.QPainter(full_pm)
@@ -114,7 +114,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
         widget = self.geometry()
         x = ag.width() - widget.width()
-        y = 400
+        y = 320
         self.move(x, y)
 
     def retranslateUi(self):
