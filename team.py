@@ -1,17 +1,18 @@
 import os
 import json
 import random
-import datetime
+from datetime import datetime
 
 class Team:
 
-    def __init__(self, name, scores, auton_rate, repair_time = 0, current_status = 1.0):
+    def __init__(self, name, scores, auton_rate, repair_time = 0, robot_health = 1.0, last_match_time = None, current_match_mod = 0):
         self.name = name
         self.scores = scores
         self.auton_rate = auton_rate
         self.repair_time = repair_time
-        self.current_status = current_status
-        self.last_match_time = None
+        self.robot_health = robot_health
+        self.last_match_time = last_match_time
+        self.current_match_mod = current_match_mod
 
     @classmethod
     def fromScoresetFile(cls, filename):
@@ -26,16 +27,18 @@ class Team:
     def fromJSON(cls, filename):
         with open(filename, 'r') as f:
             json_obj = json.load(f)
-        return cls(json_obj['name'], json_obj['scores'], json_obj['auton_rate'], json_obj['repair_time'], json_obj['current_status'])
+        return cls(json_obj['name'], json_obj['scores'], json_obj['auton_rate'], json_obj['repair_time'], json_obj['robot_health'], json_obj['last_match_time'])
 
     def exportJSON(self):
         with open('team_data/' + self.name + '.json', 'w') as f:
             json.dump(self.__dict__, f)
 
     def give_score(self):
-        #self.last_match_time = datetime.datetime.now()
+        self.last_match_time = str(datetime.now())
         raw_score = random.choice(self.scores)
         self.scores.remove(raw_score)
+        score = int(round(raw_score * self.robot_health + self.current_match_mod))
+        self.current_match_mod = 0
         self.exportJSON()
-        return int(round(raw_score * self.current_status))
+        return score
         

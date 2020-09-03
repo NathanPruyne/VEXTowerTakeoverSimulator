@@ -88,7 +88,19 @@ def get_all_more(more, less):
             return False
     return True
 
-def run_match(red_alliance, blue_alliance, speed, wait, visual):
+def run_match(red_alliance, blue_alliance, speed, wait, visual, extras):
+    
+    all_teams = red_alliance + blue_alliance
+
+    prematch_event_strings = []
+    if extras:
+        for team in all_teams:
+            if team.robot_health == 1:
+                event_type = globals()[constants.give_prematch_event()]
+                prematch_event_strings.append(str(event_type(team)))
+            else:
+                prematch_event_strings.append(str(Repair(team)))
+
     red_strengths = [team.give_score() for team in red_alliance]
 
     blue_strengths = [team.give_score() for team in blue_alliance]
@@ -191,10 +203,10 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
 
         if (red_total > blue_total and auton_winner == 0) or (red_total < blue_total and auton_winner == 1) or (red_total == blue_total and auton_winner == 2): #We randomly picked right
             
-            red_p_auton = Stack(1, random.randint(10, 14), red_alliance[0].name, 0, cube_order=red_p, autofail=fails[0])
-            red_u_auton = Stack(0, random.randint(10, 14), red_alliance[1].name, 0, cube_order=red_u, autofail=fails[1])
-            blue_p_auton = Stack(1, random.randint(10, 14), blue_alliance[0].name, 1, cube_order=blue_p, autofail=fails[2])
-            blue_u_auton = Stack(0, random.randint(10, 14), blue_alliance[1].name, 1, cube_order=blue_u, autofail=fails[3])
+            red_p_auton = Stack(1, random.randint(10, 14), red_alliance[0], 0, cube_order=red_p, autofail=fails[0])
+            red_u_auton = Stack(0, random.randint(10, 14), red_alliance[1], 0, cube_order=red_u, autofail=fails[1])
+            blue_p_auton = Stack(1, random.randint(10, 14), blue_alliance[0], 1, cube_order=blue_p, autofail=fails[2])
+            blue_u_auton = Stack(0, random.randint(10, 14), blue_alliance[1], 1, cube_order=blue_u, autofail=fails[3])
 
             events = [red_p_auton, red_u_auton, blue_p_auton, blue_u_auton]
 
@@ -273,13 +285,13 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
         location = random.choice(red_spot_list)
         if location == 2 and (1 in red_spot_list):
             location = 1
-        events.append(Stack(location, random.randint(30, 120), red_alliance[pick_acting_team(red_strengths)].name, 0, cube_totals=stack))
+        events.append(Stack(location, random.randint(30, 120), red_alliance[pick_acting_team(red_strengths)], 0, cube_totals=stack))
         red_spot_list.remove(location)
     for stack in blue_stacks:
         location = random.choice(blue_spot_list)
         if location == 2 and (1 in blue_spot_list):
             location = 1
-        events.append(Stack(location, random.randint(30, 120), blue_alliance[pick_acting_team(blue_strengths)].name, 1, cube_totals=stack))
+        events.append(Stack(location, random.randint(30, 120), blue_alliance[pick_acting_team(blue_strengths)], 1, cube_totals=stack))
         blue_spot_list.remove(location)
 
     #Generate tower event times
@@ -339,15 +351,52 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
                     valid_tower = True
                     free_towers.remove(tower_loc)
             if tower_team == 0:
-                tower_events.append(Tower(tower_loc, tower_color, time, red_alliance[pick_acting_team(red_strengths)].name, 0))
+                tower_events.append(Tower(tower_loc, tower_color, time, red_alliance[pick_acting_team(red_strengths)], 0))
             else:
-                tower_events.append(Tower(tower_loc, tower_color, time, blue_alliance[pick_acting_team(blue_strengths)].name, 1))
+                tower_events.append(Tower(tower_loc, tower_color, time, blue_alliance[pick_acting_team(blue_strengths)], 1))
             del tower_times[0]
     
     for event in tower_events:
         events.append(event)
-            
+    
+    #Add special events:
+    #Defense:
+    for i in range(3):
+        if random.random() < constants.DEFENSE_ODDS:
+            acting_alliance = random.randint(0, 1)
+            try:
+                if acting_alliance == 0:
+                    if random.randint(1, sum(red_alliance[0].scores) + sum(red_alliance[1].scores)) < sum(red_alliance[0].scores):
+                        defender = red_alliance[1]
+                    else:
+                        defender = red_alliance[0]
+                    if random.randint(1, sum(blue_alliance[0].scores) + sum(blue_alliance[1].scores)) < sum(blue_alliance[0].scores):
+                        recipient = blue_alliance[0]
+                    else:
+                        recipient = blue_alliance[1]
+                else:
+                    if random.randint(1, sum(blue_alliance[0].scores) + sum(blue_alliance[1].scores)) < sum(blue_alliance[0].scores):
+                        defender = blue_alliance[1]
+                    else:
+                        defender = blue_alliance[0]
+                    if random.randint(1, sum(red_alliance[0].scores) + sum(red_alliance[1].scores)) < sum(red_alliance[0].scores):
+                        recipient = red_alliance[0]
+                    else:
+                        recipient = red_alliance[1]
+            except ValueError:
+                if acting_alliance == 0:
+                    defender = random.choice(red_alliance)
+                    recipient = random.choice(blue_alliance)
+                else:
+                    defender = random.choice(blue_alliance)
+                    recipient = random.choice(red_alliance)
+            events.append(Defense(15 + (i + 1) * random.randint(1, 35), defender, acting_alliance, recipient, events))
+            for j in range(i + 1, 3):
+                if random.random() < constants.DEFENSE_CONTINUE_ODDS:
+                    events.append(Defense(15 + (i + 1) * random.randint(1, 35), defender, acting_alliance, recipient, events))
+
     events.sort(key=lambda x: x.time)
+
     #Run match and log events
     curr_event = 0
     auton_winner = -1
@@ -363,7 +412,11 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
             event.init_visualization(ui.centralwidget)
         ui.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         ui.show()
-    os.system('clear')
+    #os.system('clear')
+    print([event.time for event in events])
+    if extras:
+        for event in prematch_event_strings:
+            print(event)
     input("Press enter to begin")
     for time in range(121):
         if visual:
@@ -373,6 +426,7 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual):
         if curr_event < len(events) and events[curr_event].time == time:
             while curr_event < len(events) and events[curr_event].time == time:
                 update_cubes(match_totals, events[curr_event].act())
+                events.sort(key=lambda x: x.time)
                 if visual:
                     events[curr_event].visualize(ui)
                 curr_event += 1
@@ -421,6 +475,7 @@ if __name__ == "__main__":
     parser.add_argument('--no-visual', dest='visual', action='store_false', default=True, help='Don\'t run the visualization')
     parser.add_argument('--speed', type=float, default = constants.DEFAULT_SPEED, help='Speed to run the simulation')
     parser.add_argument('--no-wait', dest='wait', action='store_false', default=True, help='Use to run full match immediately without waiting')
+    parser.add_argument('--no-extras', dest='extras', action='store_false', default=True, help='Use to bypass prematch and postmatch events')
     args = parser.parse_args()
     try:
         red1 = Team.fromJSON('team_data/' + args.red1 + '.json')
@@ -433,5 +488,5 @@ if __name__ == "__main__":
     reds = [red1, red2]
     blues = [blue1, blue2]
     ui = None       
-    run_match(reds, blues, args.speed, args.wait, args.visual)
+    run_match(reds, blues, args.speed, args.wait, args.visual, args.extras)
         #sys.exit(app.exec_())

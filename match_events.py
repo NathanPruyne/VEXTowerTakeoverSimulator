@@ -1,11 +1,128 @@
 import random
 import ansiwrap
 import shutil
+from datetime import datetime
 from colortext import *
 from utils import *
 from PyQt5 import QtCore, QtGui, QtWidgets
 from visualization import Bot, Cube
 import constants
+
+class PreMatchEvent():
+
+    def __init__(self, team, string):
+        self.team = team
+        self.string = string
+
+    def __str__(self):
+        return (self.team.name + self.string)
+
+class IncreaseAllScores(PreMatchEvent):
+
+    strings = ["'s driver got some good practice in", " finally fixed that nagging issue", "'s risky modification in the pits looks like it's going to pay off", " has been working hard on their driver skills", " just got a confidence boost from the judges"]
+
+    def __init__(self, team):
+        if team.last_match_time:
+            time_delta = datetime.now() - datetime.fromisoformat(team.last_match_time)
+            modification = time_delta.seconds // 1000
+        else:
+            modification = 2
+        
+        for i in range(len(team.scores)):
+            team.scores[i] += modification
+        
+        full_string = random.choice(IncreaseAllScores.strings) + " (+" + str(modification) + " to all future scores)"
+
+        super().__init__(team, full_string)
+        
+
+class DecreaseAllScores(PreMatchEvent):
+
+    strings = [" just noticed a minor design failure", " couldn't impress the judges during their interview", " had a bit of a scare in the pits, looks like the part is fine though", ''''s robot fell off collapsed queueing table right at the end of the last match ("Bro, what the ...?" -Sean)''', "'s robot fell off the box"]
+
+    def __init__(self, team):
+        
+        for i in range(len(team.scores)):
+            team.scores[i] -= 2
+        
+        full_string = random.choice(DecreaseAllScores.strings) + " (-2 to all future scores)"
+
+        super().__init__(team, full_string)
+
+class IncreaseOneScore(PreMatchEvent):
+
+    strings = [" has been planning for this match all day", " did some hardcore scouting for this match", " is vibing right now", " has been looking forward to this match", " put their best scouts on this match", "'s driver just drank some caffiene", " has a solid plan with their alliance partner", ' got a coach pep talk ("Just win" -Romeo)']
+
+    def __init__(self, team):
+        
+        modification = random.randint(3, 6)
+
+        team.current_match_mod += modification
+        
+        full_string = random.choice(IncreaseOneScore.strings) + " (+" + str(modification) + " to this match's score)"
+
+        super().__init__(team, full_string)
+
+class DecreaseOneScore(PreMatchEvent):
+
+    strings = [" isn't feeling this one", " was caught off guard and had to rush in from the pits", " is feeling very intimidated right now", "'s driver has to use the bathroom", " is feeling the pressure right now", "'s bot struggled with a size check", " has to conserve battery this match"]
+
+    def __init__(self, team):
+        
+        modification = random.randint(2, 4)
+
+        team.current_match_mod -= modification
+        
+        full_string = random.choice(DecreaseOneScore.strings) + " (-" + str(modification) + " to this match's score)"
+
+        super().__init__(team, full_string)
+
+class ImproveAuton(PreMatchEvent):
+
+    strings = [" fixed up their auton", " has a new auton strategy implemented", " retuned their sensors", "'s field resetters came in clutch"]
+
+    def __init__(self, team):
+        
+        if team.last_match_time:
+            time_delta = datetime.now() - datetime.fromisoformat(team.last_match_time)
+            modification = time_delta.seconds / 20000
+        else:
+            modification = 2
+
+        team.auton_rate += modification
+        
+        full_string = random.choice(ImproveAuton.strings) + " (+" + str(round(modification, 2)) + " to auton win rate)"
+
+        super().__init__(team, full_string)
+
+class WorsenAuton(PreMatchEvent):
+
+    strings = [" may have screwed up their auton code", "'s sensors aren't reading properly", " can't get their auton working right"]
+
+    def __init__(self, team):
+
+        team.auton_rate -= 0.1
+        
+        full_string = random.choice(WorsenAuton.strings) + " (-0.1 to auton win rate)"
+
+        super().__init__(team, full_string)
+
+class Repair(PreMatchEvent):
+
+    def __init__(self, team):
+        time_delta = datetime.now() - datetime.fromisoformat(team.last_match_time)
+        minutes_elapsed = time_delta.seconds // 60
+
+        if minutes_elapsed >= team.repair_time:
+            team.repair_time = 0
+            team.robot_health = 1.0
+            string = " was able to repair their bot to full strength"
+        else:
+            team.repair_time -= minutes_elapsed
+            string = " was unable to repair their bot. They're still at " + str(team.robot_health) + " strength"
+        
+        super().__init__(team, string)
+
 
 class MatchEvent():
 
@@ -17,9 +134,9 @@ class MatchEvent():
 
     def teamcolored(self):
         if self.color == 1:
-            return bluetext(self.team)
+            return bluetext(self.team.name)
         else:
-            return redtext(self.team)
+            return redtext(self.team.name)
 
     def log(self, text):
         log_string = ""
@@ -30,6 +147,9 @@ class MatchEvent():
             log_string += str(remaining // 60) + ":" + str(remaining % 60).zfill(2) + "\t"
         log_string += text
         print(ansiwrap.fill(log_string, shutil.get_terminal_size().columns, subsequent_indent="\t"))
+
+    def change_time(self, count):
+        self.time += count
 
     def act(self):
         return self.score_updates #Should be overriden by all subclasses
@@ -91,20 +211,20 @@ class Stack(MatchEvent):
         self.cube_visuals = []
         max_color = self.cube_totals.index(max(self.cube_totals))
         top_loc = Cube.stack_top_locs[self.color][self.location]
-        top_cube = Cube(window, max_color, top_loc[0], top_loc[1], self.team + str(self.location) + str(self.time))
+        top_cube = Cube(window, max_color, top_loc[0], top_loc[1], self.team.name + str(self.location) + str(self.time))
         top_cube.hide()
         self.cube_visuals.append(top_cube)
         stack_loc = Cube.full_stack_locs[self.color][self.location]
         count = 0
         for color in self.cube_order:
-            cube_vis = Cube(window, color, stack_loc[0], stack_loc[1] - count * 51, self.team + str(self.location) + str(self.time))
+            cube_vis = Cube(window, color, stack_loc[0], stack_loc[1] - count * 51, self.team.name + str(self.location) + str(self.time))
             cube_vis.hide()
             self.cube_visuals.append(cube_vis)
             count += 1
 
 
     def visualize(self, window):
-        acting_bot = window.findChild(QtWidgets.QLabel, self.team)
+        acting_bot = window.findChild(QtWidgets.QLabel, self.team.name)
         loc = list(Bot.zone_locs_and_rots[self.color][self.location])
         if self.autofail:
             loc[0] += random.randint(-40, 40)
@@ -135,7 +255,7 @@ class Destack(MatchEvent):
         return self.score_updates
     
     def visualize(self, window):
-        acting_bot = window.findChild(QtWidgets.QLabel, self.team)
+        acting_bot = window.findChild(QtWidgets.QLabel, self.team.name)
         loc = Bot.zone_locs_and_rots[self.color][self.location]
         acting_bot.update_position(loc[0], loc[1], loc[2])
         for cube in self.stack.cube_visuals:
@@ -170,12 +290,31 @@ class Tower(MatchEvent):
 
     def init_visualization(self, window):
         visual_loc = Cube.tower_locs[self.tower_loc]
-        self.cube_visual = Cube(window, self.cube, visual_loc[0], visual_loc[1], self.team + str(self.tower_loc) + str(self.time))
+        self.cube_visual = Cube(window, self.cube, visual_loc[0], visual_loc[1], self.team.name + str(self.tower_loc) + str(self.time))
         self.cube_visual.hide()
 
     def visualize(self, window):
-        acting_bot = window.findChild(QtWidgets.QLabel, self.team)
+        acting_bot = window.findChild(QtWidgets.QLabel, self.team.name)
         loc = Bot.tower_locs_and_rots[self.color][self.tower_loc]
         acting_bot.update_position(loc[0], loc[1], loc[2])
         if self.cube_visual:
             self.cube_visual.show()
+
+class Defense(MatchEvent):
+
+    def __init__(self, time, team, color, recipient, events):
+        self.recipient = recipient
+        self.events = events
+        super().__init__(time, team, color)
+
+    def act(self):
+        string = self.teamcolored() + " plays some defense on "
+        if self.color == 0:
+            string += bluetext(self.recipient.name)
+        else:
+            string += redtext(self.recipient.name)
+        self.log(string)
+        for event in self.events:
+            if event.time > self.time and (event.team == self.team or event.team == self.recipient):
+                event.change_time(constants.DEFENSE_TIMEOUT)
+        return self.score_updates
