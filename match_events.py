@@ -87,7 +87,7 @@ class ImproveAuton(PreMatchEvent):
             time_delta = datetime.now() - datetime.fromisoformat(team.last_match_time)
             modification = time_delta.seconds / 20000
         else:
-            modification = 2
+            modification = 0.1
 
         team.auton_rate += modification
         

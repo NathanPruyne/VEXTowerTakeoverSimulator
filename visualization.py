@@ -16,10 +16,10 @@ class Bot(QtWidgets.QLabel):
 
         if color == 0:
             bot_pixmap = QtGui.QPixmap("assets/TT_BOT_TOP_RED.png")
-            text_frame = QtCore.QRectF(20, 65, 261, 61)
+            text_frame = QtCore.QRectF(20, 65, 330, 61)
         else:
             bot_pixmap = QtGui.QPixmap("assets/TT_BOT_TOP_BLUE.png")
-            text_frame = QtCore.QRectF(150, 65, 230, 61)
+            text_frame = QtCore.QRectF(60, 65, 330, 61)
 
         font = QtGui.QFont()
         font.setFamily("Excluded")
@@ -113,7 +113,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         #print(ag)
 
         widget = self.geometry()
-        x = ag.width() - widget.width()
+        x = ag.width() / 2 - widget.width()
         y = 320
         self.move(x, y)
 

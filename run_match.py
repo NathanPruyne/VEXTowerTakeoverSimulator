@@ -412,8 +412,7 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual, extras):
             event.init_visualization(ui.centralwidget)
         ui.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         ui.show()
-    #os.system('clear')
-    print([event.time for event in events])
+    os.system('clear')
     if extras:
         for event in prematch_event_strings:
             print(event)
