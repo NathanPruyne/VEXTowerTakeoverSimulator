@@ -93,6 +93,7 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual, extras):
     all_teams = red_alliance + blue_alliance
 
     prematch_event_strings = []
+    postmatch_event_strings = []
     if extras:
         for team in all_teams:
             if team.robot_health == 1:
@@ -390,11 +391,44 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual, extras):
                 else:
                     defender = random.choice(blue_alliance)
                     recipient = random.choice(red_alliance)
-            events.append(Defense(15 + (i + 1) * random.randint(1, 35), defender, acting_alliance, recipient, events))
+            questionable = False
+            if random.random() < constants.DEFENSE_DQ_ODDS:
+                questionable = True
+                if random.random() < constants.DQ_CARRY_THROUGH_ODDS:
+                    postmatch_event_strings.append(defender.name + " has been issued a DQ!")
+            events.append(Defense(15 + (i + 1) * random.randint(1, 35), defender, acting_alliance, recipient, events, questionable))
             for j in range(i + 1, 3):
                 if random.random() < constants.DEFENSE_CONTINUE_ODDS:
-                    events.append(Defense(15 + (i + 1) * random.randint(1, 35), defender, acting_alliance, recipient, events))
+                    questionable = False
+                    if random.random() < constants.DEFENSE_DQ_ODDS:
+                        questionable = True
+                        if random.random() < constants.DQ_CARRY_THROUGH_ODDS:
+                            postmatch_event_strings.append(defender.name + " has been issued a DQ for defense on " + recipient.name + "!")
+                    events.append(Defense(15 + (i + 1) * random.randint(1, 35), defender, acting_alliance, recipient, events, questionable))
 
+    #Damage during match:
+    damaged_teams = []
+    if random.random() < constants.DAMAGE_ODDS:
+        damaged_alliance = random.randint(0, 1)
+        if damaged_alliance == 0:
+            damaged_team = random.choice(red_alliance)
+        else:
+            damaged_team = random.choice(blue_alliance)
+        damager = None
+        if random.random() < constants.DAMAGE_INTENTION_ODDS:
+            if damaged_alliance == 0:
+                damager = random.choice(blue_alliance)
+            else:
+                damager = random.choice(red_alliance)
+            if random.random() < constants.DQ_CARRY_THROUGH_ODDS:
+                postmatch_event_strings.append(damager.name + " has been issued a DQ for damaging " + damaged_team.name + "!")
+        extent = random.choices(list(constants.DAMAGE_TYPES.keys()), weights=constants.DAMAGE_TYPE_ODDS)[0]
+        repair_category = random.choices(list(constants.DAMAGE_LENGTHS.keys()), weights=[0.5, 0.3, 0.2])[0]
+        repair_time = random.randint(0, 25) + constants.DAMAGE_LENGTHS[repair_category]
+        postmatch_event_strings.append(damaged_team.name + " appears to have sustained " + extent + " damage.")
+        postmatch_event_strings.append(repair_category)
+        events.append(Damage(random.randint(15, 120), damaged_team, damaged_alliance, extent, repair_time, constants.DAMAGE_TYPES[extent], damager))
+    
     events.sort(key=lambda x: x.time)
 
     #Run match and log events
@@ -455,6 +489,23 @@ def run_match(red_alliance, blue_alliance, speed, wait, visual, extras):
     print("Blue stacks: " + cube_totals_to_string(match_totals[2]))
 
     print("Final score: " + redtext(red_final_score) + '-' + bluetext(blue_final_score))
+
+    #Damage after match:
+    if random.random() < constants.POST_DAMAGE_ODDS:
+        damaged_team = random.choice(all_teams)
+        extent = random.choices(list(constants.DAMAGE_TYPES.keys()), weights=constants.DAMAGE_TYPE_ODDS)[0]
+        damaged_team.robot_health = constants.DAMAGE_TYPES[extent]
+        repair_category = random.choices(list(constants.DAMAGE_LENGTHS.keys()), weights=[0.5, 0.3, 0.2])[0]
+        damaged_team.repair_time = random.randint(0, 25) + constants.DAMAGE_LENGTHS[repair_category]
+        postmatch_event_strings.append(damaged_team.name + " appears to have sustained " + extent + " damage.")
+        postmatch_event_strings.append(repair_category)
+        damaged_teams.append(damaged_team)
+
+    for team in damaged_teams:
+        team.exportJSON()
+
+    for event in postmatch_event_strings:
+        print(event)
     input("Press enter to quit")
 
 '''

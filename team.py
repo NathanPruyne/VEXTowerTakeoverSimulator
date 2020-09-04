@@ -13,6 +13,7 @@ class Team:
         self.robot_health = robot_health
         self.last_match_time = last_match_time
         self.current_match_mod = current_match_mod
+        self.match_status = 1.0
 
     @classmethod
     def fromScoresetFile(cls, filename):

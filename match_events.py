@@ -186,6 +186,8 @@ class Stack(MatchEvent):
         self.cube_totals = new_totals
 
     def act(self):
+        if random.random() > self.team.match_status:
+            return self.score_updates
         attempt_str = self.teamcolored() + " tries to stack " + cube_totals_to_string(self.cube_totals) + " in the "
         if self.location == 0:
             attempt_str += "unprotected zone"
@@ -244,6 +246,8 @@ class Destack(MatchEvent):
         super().__init__(time, stack.team, stack.color)
 
     def act(self):
+        if random.random() > self.team.match_status:
+            return self.score_updates
         self.cube_totals = self.stack.cube_totals
         event_str = self.teamcolored() + " removes " + cube_totals_to_string(self.cube_totals) + " from the "
         if self.location == 0:
@@ -271,6 +275,8 @@ class Tower(MatchEvent):
         super().__init__(time, team, color)
 
     def act(self):
+        if random.random() > self.team.match_status:
+            return self.score_updates
         attempt_str = self.teamcolored() + " tries to tower "
         if self.cube == 0:
             attempt_str += orangetext("orange")
@@ -302,19 +308,71 @@ class Tower(MatchEvent):
 
 class Defense(MatchEvent):
 
-    def __init__(self, time, team, color, recipient, events):
+    def __init__(self, time, team, color, recipient, events, questionable):
         self.recipient = recipient
         self.events = events
+        self.questionable = questionable
         super().__init__(time, team, color)
 
     def act(self):
+        if random.random() > self.team.match_status:
+            return self.score_updates
         string = self.teamcolored() + " plays some defense on "
         if self.color == 0:
             string += bluetext(self.recipient.name)
         else:
             string += redtext(self.recipient.name)
         self.log(string)
+        if self.questionable:
+            self.log("That move by " + self.teamcolored() + " seemed a little questionable")
         for event in self.events:
             if event.time > self.time and (event.team == self.team or event.team == self.recipient):
                 event.change_time(constants.DEFENSE_TIMEOUT)
         return self.score_updates
+
+    def visualize(self, window):
+        defender_bot = window.findChild(QtWidgets.QLabel, self.team.name)
+        recipient_bot = window.findChild(QtWidgets.QLabel, self.recipient.name)
+        location = random.randint(0, len(Bot.open_locs_and_rots[0]) - 1)
+        defender_loc = Bot.open_locs_and_rots[1][location]
+        recipient_loc = Bot.open_locs_and_rots[0][location]
+        defender_bot.update_position(defender_loc[0], defender_loc[1], defender_loc[2])
+        recipient_bot.update_position(recipient_loc[0], recipient_loc[1], recipient_loc[2])
+
+class Damage(MatchEvent):
+
+    def __init__(self, time, team, color, extent, value, repair_time, damager=None):
+        self.damager = damager
+        self.extent = extent
+        self.value = value
+        self.repair_time = repair_time
+        super().__init__(time, team, color)
+
+    def act(self):
+        self.log(self.teamcolored() + " has sustained some robot damage. It appears to be " + self.extent)
+        if self.damager:
+            string = ""
+            if self.color == 0:
+                string += bluetext(self.damager.name)
+            else:
+                string += redtext(self.damager.name)
+            string += " might have caused this and will be under scrutiny."
+            self.log(string)
+        self.team.match_status = self.value
+        self.team.robot_health = self.value
+        self.team.repair_time = self.repair_time
+        return self.score_updates
+
+    def visualize(self, window):
+        if self.damager:
+            damaged_bot = window.findChild(QtWidgets.QLabel, self.team.name)
+            damager_bot = window.findChild(QtWidgets.QLabel, self.damager.name)
+            location = random.randint(0, len(Bot.open_locs_and_rots[0]) - 1)
+            damager_loc = Bot.open_locs_and_rots[1][location]
+            damaged_loc = Bot.open_locs_and_rots[0][location]
+            damaged_bot.update_position(damaged_loc[0], damaged_loc[1], damaged_loc[2])
+            damager_bot.update_position(damager_loc[0], damager_loc[1], damager_loc[2])
+        else:
+            damaged_bot = window.findChild(QtWidgets.QLabel, self.team.name)
+            loc = Bot.open_locs_and_rots[random.randint(0, 1)][random.randint(0, len(Bot.open_locs_and_rots[0]) - 1)]
+            damaged_bot.update_position(loc[0], loc[1], loc[2])

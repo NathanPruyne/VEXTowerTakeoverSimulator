@@ -6,6 +6,7 @@ class Bot(QtWidgets.QLabel):
 
     zone_locs_and_rots = [[(640, 900, 135), (640, 250, 235), (660, 250, 235)], [(1400, 900, 225), (1440, 250, 125), (1420, 250, 125)]]
     tower_locs_and_rots = [[(825, 945, 90), (710, 310, 90), (830, 340, 0), (880, 390, 45), (830, 980, 0), (1580, 310, 90), (1470, 945, 90)], [(825, 945, 270), (710, 800, 90), (1280, 340, 0), (1200, 710, 45), (1280, 980, 0), (1580, 800, 90), (1470, 945, 270)]]
+    open_locs_and_rots = [[(840, 140, 0), (1260, 140, 0), (1030, 1190, 0), (1030, 1190, 0), (1680, 730, 90), (1680, 300, 90), (620, 300, 90), (620, 730, 90)], [(950, 320, 90), (1390, 320, 90), (780, 840, 45), (1300, 850, 135), (1320, 930, 0), (1320, 500, 0), (800, 500, 0), (800, 930, 0)]]
 
     def __init__(self, widget, color, team_name, x, y):
 
@@ -139,10 +140,10 @@ if __name__ == "__main__":
     print(timer)
     ui.show()
     #cube = Cube(ui.centralwidget, 0, 790, 730)
-    bot1.update_position(1580, 310, 90)
-    bot2.update_position(1470, 945, 90)
+    bot1.update_position(620, 730, 90)
+    bot2.update_position(800, 930, 0)
     bot4.update_position(710, 800, 90)
-    bot3.update_position(1200, 710, 45)
+    bot3.update_position(1, 840, 135)
     #print(ui.findChildren(QtWidgets.QLabel))
     
     sys.exit(app.exec_())
